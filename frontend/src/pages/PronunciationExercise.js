@@ -1,14 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "../style/SpellingCorrection.css";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
 // ✅ Fix: handle missing or "undefined" env
-const API =
-  !process.env.REACT_APP_API_URL || process.env.REACT_APP_API_URL === "undefined"
-    ? "http://localhost:5000"
-    : process.env.REACT_APP_API_URL;
+const API = process.env.REACT_APP_API_URL;
 
 const PronunciationExercise = () => {
   const [searchParams] = useSearchParams();
