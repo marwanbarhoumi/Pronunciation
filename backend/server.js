@@ -18,10 +18,14 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // يسمح Postman
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+      if (!origin) return callback(null, true); // Postman / server-to-server
+
+      // يسمح للـ localhost + production vercel
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // ✅ يسمح لأي preview domain متاع Vercel
+      if (origin.endsWith(".vercel.app")) return callback(null, true);
+
       return callback(new Error("Not allowed by CORS: " + origin));
     }
   })
