@@ -4,8 +4,7 @@ import "../style/SpellingCorrection.css";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
-// ✅ Production: set this in Vercel env
-// REACT_APP_API_URL = https://pronunciation-d7vw.onrender.com
+// ✅ Fix: handle missing or "undefined" env
 const API = process.env.REACT_APP_API_URL;
 
 const PronunciationExercise = () => {
@@ -18,12 +17,22 @@ const PronunciationExercise = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showSentence, setShowSentence] = useState(true);
 
   const recorderRef = useRef(null);
   const audioRef = useRef(null);
+  const hideSentenceTimeout = useRef(null);
+
+  const clearTimer = () => {
+    if (hideSentenceTimeout.current) {
+      clearTimeout(hideSentenceTimeout.current);
+      hideSentenceTimeout.current = null;
+    }
+  };
 
   useEffect(() => {
     return () => {
+      clearTimer();
       if (audioRef.current) audioRef.current.pause();
       window.speechSynthesis?.cancel();
     };
@@ -34,15 +43,10 @@ const PronunciationExercise = () => {
   ============================ */
   const generateSentence = async () => {
     try {
+      clearTimer();
+      setShowSentence(true);
+
       const res = await fetch(`${API}/api/pronunciation/exercise/${level}`);
-
-      // لو API غلط ولا Render راقد، هذا يعطيك debug واضح
-      if (!res.ok) {
-        const t = await res.text();
-        console.error("Exercise HTTP error:", res.status, t.slice(0, 200));
-        return;
-      }
-
       const data = await res.json();
 
       if (data.success) {
@@ -63,6 +67,22 @@ const PronunciationExercise = () => {
     generateSentence();
     // eslint-disable-next-line
   }, [level]);
+
+  /* ============================
+     HIDE SENTENCE TIMER
+  ============================ */
+  const hideSentenceAfterDelay = () => {
+    clearTimer();
+
+    let delay = 10000;
+    if (level <= 2) delay = 5000;
+    else if (level === 3) delay = 8000;
+    else delay = 18000;
+
+    hideSentenceTimeout.current = setTimeout(() => {
+      setShowSentence(false);
+    }, delay);
+  };
 
   /* ============================
      ✅ TTS (NO AUTH)
@@ -98,15 +118,17 @@ const PronunciationExercise = () => {
       };
 
       await audio.play();
+      hideSentenceAfterDelay();
     } catch (err) {
       console.error("TTS error:", err);
       setIsSpeaking(false);
 
-      // fallback browser TTS
-      if ("speechSynthesis" in window && exercise?.correctSentence) {
+      // fallback browser
+      if ("speechSynthesis" in window) {
         const utter = new SpeechSynthesisUtterance(exercise.correctSentence);
         utter.lang = "ar-SA";
         utter.rate = 0.85;
+        utter.onstart = hideSentenceAfterDelay;
         utter.onend = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utter);
       }
@@ -164,13 +186,6 @@ const PronunciationExercise = () => {
         body: form
       });
 
-      if (!res.ok) {
-        const t = await res.text();
-        console.error("Check HTTP error:", res.status, t.slice(0, 200));
-        setLoading(false);
-        return;
-      }
-
       const data = await res.json();
       if (data.success) setResult(data);
       else console.error("check success=false", data);
@@ -194,9 +209,14 @@ const PronunciationExercise = () => {
 
         {exercise && (
           <div className="correction-section">
-            {/* ✅ sentence always visible */}
             <div className="exercise-box">
-              <p className="exercise-sentence">{exercise.correctSentence}</p>
+              {showSentence ? (
+                <p className="exercise-sentence">{exercise.correctSentence}</p>
+              ) : (
+                <p className="exercise-sentence-hidden">
+                  🎧 استمعت للجملة، سجّل صوتك الآن
+                </p>
+              )}
             </div>
 
             <div className="speak-buttons">
@@ -227,11 +247,9 @@ const PronunciationExercise = () => {
           <div className="result-section">
             <div className="score-card">
               <h3>نتيجة النطق</h3>
-
               <div className="score-circle">
                 <span className="score-value">{result.score}%</span>
               </div>
-
               <p className="feedback">{result.feedback}</p>
             </div>
 
@@ -252,7 +270,6 @@ const PronunciationExercise = () => {
             {result?.mistakes?.length > 0 && (
               <div className="mistakes-details">
                 <h4>🔍 كلمات تحتاج تحسين:</h4>
-
                 <div className="mistakes-list">
                   {result.mistakes.map((m, index) => (
                     <div key={index} className="mistake-item">
