@@ -17,7 +17,6 @@ const PronunciationExercise = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showSentence, setShowSentence] = useState(true);
 
   const recorderRef = useRef(null);
   const audioRef = useRef(null);
@@ -44,7 +43,6 @@ const PronunciationExercise = () => {
   const generateSentence = async () => {
     try {
       clearTimer();
-      setShowSentence(true);
 
       const res = await fetch(`${API}/api/pronunciation/exercise/${level}`);
       const data = await res.json();
@@ -79,9 +77,7 @@ const PronunciationExercise = () => {
     else if (level === 3) delay = 8000;
     else delay = 18000;
 
-    hideSentenceTimeout.current = setTimeout(() => {
-      setShowSentence(false);
-    }, delay);
+    hideSentenceTimeout.current = setTimeout(() => {}, delay);
   };
 
   /* ============================
@@ -209,18 +205,14 @@ const PronunciationExercise = () => {
 
         {exercise && (
           <div className="correction-section">
-            <div className="exercise-box">
-              {showSentence ? (
-                <p className="exercise-sentence">{exercise.correctSentence}</p>
-              ) : (
-                <p className="exercise-sentence-hidden">
-                  🎧 استمعت للجملة، سجّل صوتك الآن
-                </p>
-              )}
-            </div>
+            <div className="exercise-box"></div>
 
             <div className="speak-buttons">
-              <button className="speak-btn" onClick={speakSentence} disabled={isSpeaking}>
+              <button
+                className="speak-btn"
+                onClick={speakSentence}
+                disabled={isSpeaking}
+              >
                 {isSpeaking ? "🔊 جاري القراءة..." : "استمع 🎧▶️"}
               </button>
 
@@ -236,7 +228,11 @@ const PronunciationExercise = () => {
             </div>
 
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <button className="correct-btn" onClick={submitPronunciation} disabled={loading}>
+              <button
+                className="correct-btn"
+                onClick={submitPronunciation}
+                disabled={loading}
+              >
                 {loading ? "جاري التقييم..." : "✅ تأكيد النطق"}
               </button>
             </div>
@@ -263,7 +259,9 @@ const PronunciationExercise = () => {
 
               <div className="text-box">
                 <h4>📝 النص المفهوم:</h4>
-                <div className="corrected-text">{result.recognizedText || "—"}</div>
+                <div className="corrected-text">
+                  {result.recognizedText || "—"}
+                </div>
               </div>
             </div>
 
