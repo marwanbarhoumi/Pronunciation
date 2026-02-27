@@ -4,7 +4,6 @@ import "../style/SpellingCorrection.css";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
-// ✅ Fix: handle missing or "undefined" env
 const API = process.env.REACT_APP_API_URL;
 
 const PronunciationExercise = () => {
@@ -17,22 +16,12 @@ const PronunciationExercise = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showSentence, setShowSentence] = useState(true);
 
   const recorderRef = useRef(null);
   const audioRef = useRef(null);
-  const hideSentenceTimeout = useRef(null);
-
-  const clearTimer = () => {
-    if (hideSentenceTimeout.current) {
-      clearTimeout(hideSentenceTimeout.current);
-      hideSentenceTimeout.current = null;
-    }
-  };
 
   useEffect(() => {
     return () => {
-      clearTimer();
       if (audioRef.current) audioRef.current.pause();
       window.speechSynthesis?.cancel();
     };
@@ -43,9 +32,6 @@ const PronunciationExercise = () => {
   ============================ */
   const generateSentence = async () => {
     try {
-      clearTimer();
-      setShowSentence(true);
-
       const res = await fetch(`${API}/api/pronunciation/exercise/${level}`);
       const data = await res.json();
 
@@ -67,22 +53,6 @@ const PronunciationExercise = () => {
     generateSentence();
     // eslint-disable-next-line
   }, [level]);
-
-  /* ============================
-     HIDE SENTENCE TIMER
-  ============================ */
-  const hideSentenceAfterDelay = () => {
-    clearTimer();
-
-    let delay = 10000;
-    if (level <= 2) delay = 5000;
-    else if (level === 3) delay = 8000;
-    else delay = 18000;
-
-    hideSentenceTimeout.current = setTimeout(() => {
-      setShowSentence(false);
-    }, delay);
-  };
 
   /* ============================
      ✅ TTS (NO AUTH)
@@ -118,17 +88,15 @@ const PronunciationExercise = () => {
       };
 
       await audio.play();
-      hideSentenceAfterDelay();
     } catch (err) {
       console.error("TTS error:", err);
       setIsSpeaking(false);
 
-      // fallback browser
-      if ("speechSynthesis" in window) {
+      // fallback browser TTS
+      if ("speechSynthesis" in window && exercise?.correctSentence) {
         const utter = new SpeechSynthesisUtterance(exercise.correctSentence);
         utter.lang = "ar-SA";
         utter.rate = 0.85;
-        utter.onstart = hideSentenceAfterDelay;
         utter.onend = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utter);
       }
@@ -209,18 +177,17 @@ const PronunciationExercise = () => {
 
         {exercise && (
           <div className="correction-section">
+            {/* ✅ sentence always visible */}
             <div className="exercise-box">
-              {showSentence ? (
-                <p className="exercise-sentence">{exercise.correctSentence}</p>
-              ) : (
-                <p className="exercise-sentence-hidden">
-                  🎧 استمعت للجملة، سجّل صوتك الآن
-                </p>
-              )}
+              <p className="exercise-sentence">{exercise.correctSentence}</p>
             </div>
 
             <div className="speak-buttons">
-              <button className="speak-btn" onClick={speakSentence} disabled={isSpeaking}>
+              <button
+                className="speak-btn"
+                onClick={speakSentence}
+                disabled={isSpeaking}
+              >
                 {isSpeaking ? "🔊 جاري القراءة..." : "استمع 🎧▶️"}
               </button>
 
@@ -236,7 +203,11 @@ const PronunciationExercise = () => {
             </div>
 
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <button className="correct-btn" onClick={submitPronunciation} disabled={loading}>
+              <button
+                className="correct-btn"
+                onClick={submitPronunciation}
+                disabled={loading}
+              >
                 {loading ? "جاري التقييم..." : "✅ تأكيد النطق"}
               </button>
             </div>
@@ -263,7 +234,9 @@ const PronunciationExercise = () => {
 
               <div className="text-box">
                 <h4>📝 النص المفهوم:</h4>
-                <div className="corrected-text">{result.recognizedText || "—"}</div>
+                <div className="corrected-text">
+                  {result.recognizedText || "—"}
+                </div>
               </div>
             </div>
 
