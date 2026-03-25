@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import "../style/PronunciationExercise.css";
+import "../styles/SpellingCorrection.css";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
